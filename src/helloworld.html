@@ -1,0 +1,44 @@
+<html>
+  <head>
+    <script src="https://d3js.org/d3.v5.min.js"></script>
+    <style>
+      svg {
+        width: 1000px;
+        height: 1000px;
+        border: 3px solid green;
+        transform-origin: 0 0;
+      }
+    </style>
+  </head>
+  <body>
+    <script type="text/javascript">
+      var values = [0, 2, 8, 1, 2];
+      var initialX = 15;
+      var deltaX = 25;
+      var initialY = 15;
+      var deltaY = 25;
+      var currentX = initialX;
+      var currentY = initialY;
+
+      var svg = d3.select("body")
+        .append("svg")
+        .attr("transform", "scale(8)")
+      
+      var gCircles = svg.append("g");
+      gCircles.attr("class", "circleGroup");
+
+      values.forEach(x => drawCircle(gCircles, x));
+      
+      function drawCircle(gCircles, radius) {
+        gCircles
+          .append("circle") 
+          .attr("fill", "red")
+          .attr("r", Math.sqrt(radius))
+          .attr("cx", currentX)
+          .attr("cy", currentY);
+        
+        currentX += 25;
+      }
+    </script>
+  </body>
+</html>

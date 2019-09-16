@@ -1,0 +1,238 @@
+<html>
+  <head>
+    <script src="https://d3js.org/d3.v5.min.js"></script>
+    <style>
+        svg {
+          border: 1px solid grey;
+        }
+        .grid line {
+          stroke: lightgray;
+          stroke-opacity: 0.7;
+          shape-rendering: crispEdges;
+        }
+      </style>
+  </head>
+  <body>
+    <!-- range slider -->
+    <table>
+      <tr>
+        <td>
+          <span>Emphasize Lower Range</span>
+        </td>
+        <td>
+          <input onchange="renderChart(this.value)" type="range" min=".1" max="5" value="1" step=".1" class="slider" id="myRange" >
+        </td>
+        <td>
+          <span>Emphasize Upper Range</span>
+        </td>
+      </tr>
+    </table>
+    <!-- line chart -->
+    <script type="text/javascript">
+      renderChart(1);
+
+      function renderChart(exponent) {
+        d3.select("body").select("svg").remove();
+
+        // input data
+        var data = [
+          {date: "01/06/2019", value1: 3, value2: 0 },
+          {date: "02/06/2019", value1: 0, value2: 25 },
+          {date: "03/06/2019", value1: 5, value2: 5 },
+          {date: "04/06/2019", value1: 8, value2: 37 },
+          {date: "05/06/2019", value1: 11, value2: 55 },
+          {date: "06/06/2019", value1: 25, value2: 44 },
+          {date: "07/06/2019", value1: 15, value2: 18 },
+          {date: "08/06/2019", value1: 50, value2: 15 },
+          {date: "09/06/2019", value1: 53, value2: 3 },
+          {date: "10/06/2019", value1: 59, value2: 15 },
+          {date: "11/06/2019", value1: 61, value2: 3 }
+        ];
+        var margin = 50;
+
+        var width = 1024;
+        var height = 768;
+
+        var dataGroup = d3.select("body").append("svg")
+          .attr("width", width + margin)
+          .attr("height", height + 2 * margin)
+          .append("g")
+          .attr("transform", "translate(" + margin + ", " + margin + ")");
+        
+        var parseTime = d3.timeParse("%d/%m/%Y");
+
+        data.forEach(function (d) {
+          d.date = parseTime(d.date);
+          // d.value3 = Math.random() * 62;  // add another line with random values
+          // delete d.value2;
+        });
+
+        // plotting the graph
+        // define x axis
+        var x = d3.scaleTime()
+          .domain(d3.extent(data, function (d) { return d.date; }))
+          .range([0, width]);
+
+        // define y axis
+        var y = d3.scalePow()
+          .domain(d3.extent(data, function (d) { return d.value1; }))
+          .range([height, 0])
+          .exponent(exponent).nice();  // even spacing on the scale
+
+        var propertyNames = [];
+
+        for (var name in data[0]) {
+          if (name == "date") {
+            continue;
+          }
+          propertyNames.push(name);
+        }
+
+        var colors = d3.schemeCategory10;
+
+        for (var i=0; i<propertyNames.length; i++) {
+          plotVariable(propertyNames[i], colors[i]);
+        }
+
+        // draw x axis
+        var xAxisGroup = dataGroup
+          .append("g")
+          .attr("class", "xAxisGroup")
+          .attr("transform", "translate(0, " + height + ")");
+        var xAxis = d3.axisBottom(x)
+          .tickFormat(d3.timeFormat("%d/%m/%Y"))
+          .tickSize(10);
+        xAxis(xAxisGroup);
+
+        //draw y axis
+        var yAxisGroup = dataGroup
+          .append("g")
+          .attr("class", "yAxisGroup");
+        var yAxis = d3.axisLeft(y)
+          .tickFormat(d => y.tickFormat(62, d3.format(",d")) (d));
+        yAxis(yAxisGroup);
+
+        drawGridlines();
+        circlePoints(propertyNames, dataGroup);
+        drawLegend(propertyNames, dataGroup);
+
+        d3.selectAll(".xAxisGroup .tick text")
+          .attr("transform", "rotate(-15");
+
+        // Draw gridlines
+        function drawGridlines() {
+          var yGridlines = d3.axisLeft(y)
+            .ticks(30)
+            .tickFormat("")
+            .tickSize(-width);
+          var gridy = dataGroup.append("g")
+            .attr("class", "grid")
+            .call(yGridlines);
+          yGridlines(gridy);
+
+          var xGridlines = d3.axisBottom(x)
+            .ticks(30)
+            .tickFormat("")
+            .tickSize(height);
+          var gridx = dataGroup.append("g")
+            .attr("class", "grid")
+            .call(xGridlines);
+          xGridlines(gridx);
+        }
+
+        // draw the data points
+        function circlePoints(propertyNames, dataGroup) {
+          data.forEach(function (point) {
+            for (var i=0; i<propertyNames.length; i++) {
+              dataGroup
+                .append("circle")
+                .attr("fill", d3.schemeCategory10[i])
+                .attr("r", 5)
+                .attr("cx", x(point.date))
+                .attr("cy", y(point[propertyNames[i]]))
+                .append("title")
+                .text("Date: " + d3.timeFormat("%d/%m/%Y")(point.date) + "\n" + propertyNames[i] + ": " + point[propertyNames[i]]);
+            }
+          })
+        }
+
+        // draw the graph
+        function plotVariable(propertyName, color) {
+          var line1 = d3.line()
+            .x(d => x(d.date))
+            .y(d => y(d[propertyName]))
+            .curve(d3.curveMonotoneX);  // curveMonotoneX is for smoothing the line
+
+          dataGroup.append("path")
+            .data([data])
+            .attr("fill", "none")
+            .attr("stroke", color)
+            .attr("d", line1);
+        }
+
+        function drawLegend(propertyNames, dataGroup) {
+          var legendElements = [];
+
+          var legend = dataGroup
+            .append("g")
+
+          var elementHeight = 50;
+          
+          var xOrigin = 800;
+          var yOrigin = 500 - elementHeight * propertyNames.length;
+          var width = 200;
+
+          var xMargin = 5;
+          var yMargin = 20;
+
+          var height = propertyNames.length * elementHeight + 2 * yMargin;
+
+          var elementWidth = 100;
+
+          legend
+            .append("rect")
+            .attr("x", xOrigin)
+            .attr("y", yOrigin)
+            .attr("fill", "white")
+            .attr("width", width)
+            .attr("height", height)
+            .attr("stroke", "gray");
+
+          for (var i=0; i<propertyNames.length; i++) {
+            var element = {
+              color: d3.schemeCategory10[i],
+              title: propertyNames[i]
+            }
+            legendElements.push(element);
+          }
+
+          currentY = yOrigin + yMargin;
+          legendElements.forEach(function (x) {
+            legend.append("rect")
+              .attr("fill", x.color)
+              .attr("x", xOrigin + xMargin)
+              .attr("y", currentY)
+              .attr("width", elementWidth)
+              .attr("height", elementHeight)
+              .append("title")
+              .text(x.title);
+            
+            var title = x.title.length < 8 ? x.title : x.title.substring(0, 8) + "...";
+            
+            legend.append("text")
+              .text(x.title)
+              .attr("font-size", "14pt")
+              .attr("fill", x.color)
+              .attr("x", xOrigin + xMargin)
+              .attr("y", currentY)
+              .attr("dx", elementWidth + xMargin)
+              .attr("dy", yMargin);
+
+            currentY += elementHeight;
+          })
+        }
+      }
+
+    </script>
+  </body>
+</html>
